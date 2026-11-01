@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Daily Expense Tracker</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f6fb;color:#1f2937;font:16px Arial,sans-serif}header{background:linear-gradient(120deg,#1d4ed8,#4338ca);color:white;padding:28px 18px}header h1{margin:0 0 8px}header p{margin:0;color:#e0e7ff}main{max-width:1050px;margin:24px auto;padding:0 16px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}.content{display:grid;grid-template-columns:.9fr 1.6fr;gap:18px}.card{background:white;border:1px solid #e5e7eb;border-radius:14px;padding:18px;box-shadow:0 3px 12px #0f172a08}.label{color:#6b7280;font-size:.9rem;margin-bottom:8px}.value{font-size:1.6rem;font-weight:bold}h2{font-size:1.15rem;margin:0 0 16px}label{display:block;font-weight:600;font-size:.9rem;margin:13px 0 6px}input,select{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px;font:inherit}button{border:0;border-radius:8px;padding:10px 13px;font-weight:bold;cursor:pointer}.primary{background:#2563eb;color:white;width:100%;margin-top:16px}.secondary{background:#eff6ff;color:#1d4ed8}.danger{background:#fee2e2;color:#991b1b;padding:7px 9px}.tools{display:flex;gap:8px;margin-bottom:12px}.tools input{flex:1;min-width:100px}.tablewrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{text-align:left;padding:10px 7px;border-bottom:1px solid #e5e7eb;white-space:nowrap}th{color:#6b7280}.empty{text-align:center;color:#6b7280;padding:24px 5px}.catrow{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #e5e7eb}.note{font-size:.82rem;color:#6b7280;line-height:1.5;margin-top:14px}footer{text-align:center;color:#6b7280;font-size:.82rem;padding:18px}@media(max-width:760px){.content{grid-template-columns:1fr}.grid{grid-template-columns:1fr}}
+</style></head>
+<body>
+<header><div style="max-width:1050px;margin:auto"><h1>Daily Expense Tracker</h1><p>Record daily spending and understand where your money goes.</p></div></header>
+<main>
+<section class="grid">
+<div class="card"><div class="label">Total Expenses</div><div class="value" id="total">₹0.00</div></div>
+<div class="card"><div class="label">Number of Entries</div><div class="value" id="count">0</div></div>
+<div class="card"><div class="label">Highest Category</div><div class="value" id="top" style="font-size:1.2rem">—</div></div>
+</section>
+<section class="content">
+<div class="card"><h2>Add an Expense</h2><form id="form">
+<label for="title">Expense description</label><input id="title" maxlength="70" placeholder="e.g., Lunch" required>
+<label for="amount">Amount (₹)</label><input id="amount" type="number" min=".01" step=".01" placeholder="e.g., 150" required>
+<label for="category">Category</label><select id="category"><option>Food</option><option>Travel</option><option>Education</option><option>Shopping</option><option>Bills</option><option>Other</option></select>
+<label for="date">Date</label><input id="date" type="date" required><button class="primary">Add Expense</button>
+</form><div class="note">Demo note: entries are saved in this browser using local storage. They are not uploaded to a cloud database.</div></div>
+<div class="card"><h2>Expense Records</h2><div class="tools"><input id="search" placeholder="Search expenses…"><button class="secondary" id="export">Export CSV</button></div>
+<div class="tablewrap"><table><thead><tr><th>Description</th><th>Category</th><th>Date</th><th>Amount</th><th>Action</th></tr></thead><tbody id="rows"></tbody></table><div class="empty" id="empty">No expenses yet. Add your first expense.</div></div>
+
+<h2 style="margin-top:20px">Monthly Expense Summary</h2>
+
+<div class="card" style="margin-bottom:16px">
+  <h3>Monthly Budget</h3>
+  <label for="budget">Set your monthly budget (₹)</label>
+  <input id="budget" type="number" min="1" step="1" placeholder="e.g., 5000">
+  <div class="value" id="budgetStatus">Set a budget to begin.</div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="label">This Month's Spending</div>
+    <div class="value" id="monthlyTotal">₹0.00</div>
+  </div>
+  <div class="card">
+    <div class="label">Expenses This Month</div>
+    <div class="value" id="monthlyCount">0</div>
+  </div>
+</div>
+
+
+<h2 style="margin-top:20px">Monthly Expense Chart</h2>
+<div class="card">
+  <div id="expenseChart">
+    Your expense chart will appear here.
+  </div>
+</div>
+
+<h2 style="margin-top:20px">Spending by Category</h2><div id="categories"></div></div>
+</section></main><footer>Daily Expense Tracker · Educational mini-project</footer>
+<script>
+const KEY="dailyExpenseTrackerEntries", $=id=>document.getElementById(id);
+$("date").value=new Date().toISOString().slice(0,10);
+let expenses=[];try{expenses=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){expenses=[]}
+const money=n=>"₹"+Number(n).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+function save(){localStorage.setItem(KEY,JSON.stringify(expenses))}
+function render(){
+ let q=$("search").value.trim().toLowerCase(), shown=expenses.filter(e=>[e.title,e.category,e.date].some(v=>String(v).toLowerCase().includes(q)));
+ $("rows").innerHTML="";
+ shown.forEach(e=>{let tr=document.createElement("tr");[e.title,e.category,e.date].forEach(v=>{let td=document.createElement("td");td.textContent=v;tr.appendChild(td)});
+ let a=document.createElement("td");a.textContent=money(e.amount);a.style.fontWeight="bold";tr.appendChild(a);
+ let td=document.createElement("td"),b=document.createElement("button");b.textContent="Delete";b.className="danger";b.onclick=()=>{expenses=expenses.filter(x=>x.id!==e.id);save();render()};td.appendChild(b);tr.appendChild(td);$("rows").appendChild(tr)});
+ $("empty").style.display=shown.length?"none":"block";
+ $("total").textContent=money(expenses.reduce((s,e)=>s+Number(e.amount),0));$("count").textContent=expenses.length;
+ 
+const now = new Date();
+const monthlyExpenses = expenses.filter(e => e.date && e.date.slice(0, 7) === now.toISOString().slice(0, 7));
+$("monthlyTotal").textContent = money(monthlyExpenses.reduce((sum, e) => sum + Number(e.amount), 0));
+$("monthlyCount").textContent = monthlyExpenses.length;
+
+const budget = Number($("budget").value);
+const status = $("budgetStatus");
+
+if (budget > 0) {
+  const remaining = budget - monthlyExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+
+  status.textContent = remaining >= 0
+    ? "Budget remaining: " + money(remaining)
+    : "Budget exceeded by: " + money(Math.abs(remaining));
+} else {
+  status.textContent = "Set a budget to begin.";
+}
+
+
+ let sums={};expenses.forEach(e=>sums[e.category]=(sums[e.category]||0)+Number(e.amount));
+ let cats=Object.entries(sums).sort((a,b)=>b[1]-a[1]);$("top").textContent=cats.length?cats[0][0]:"—";$("categories").innerHTML="";
+ 
+const chart = $("expenseChart");
+chart.innerHTML = "";
+
+if (cats.length === 0) {
+  chart.textContent = "Add expenses to see your chart.";
+} else {
+  const maxAmount = cats[0][1];
+
+  cats.forEach(([category, amount]) => {
+    const row = document.createElement("div");
+    row.style.marginBottom = "15px";
+
+    const label = document.createElement("div");
+    label.textContent = category + " - " + money(amount);
+    label.style.marginBottom = "6px";
+
+    const track = document.createElement("div");
+    track.style.background = "#e5e7eb";
+    track.style.height = "14px";
+    track.style.borderRadius = "10px";
+
+    const bar = document.createElement("div");
+    bar.style.width = (amount / maxAmount * 100) + "%";
+    bar.style.background = "#2563eb";
+    bar.style.height = "14px";
+    bar.style.borderRadius = "10px";
+
+    track.appendChild(bar);
+    row.appendChild(label);
+    row.appendChild(track);
+    chart.appendChild(row);
+  });
+}
+
+if(!cats.length)$("categories").innerHTML='<div class="note">Category totals will appear here.</div>';
+ cats.forEach(([c,n])=>{let row=document.createElement("div");row.className="catrow";let l=document.createElement("span"),r=document.createElement("strong");l.textContent=c;r.textContent=money(n);row.append(l,r);$("categories").appendChild(row)});
+}
+$("form").addEventListener("submit",e=>{e.preventDefault();let title=$("title").value.trim(),amount=Number($("amount").value),date=$("date").value;if(!title||!Number.isFinite(amount)||amount<=0||!date){alert("Enter a description, a positive amount, and a date.");return}expenses.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),title,amount,category:$("category").value,date});save();$("form").reset();$("date").value=new Date().toISOString().slice(0,10);render()});
+$("search").addEventListener("input",render);
+
+$("budget").addEventListener("input", () => {
+  localStorage.setItem("dailyExpenseTrackerBudget", $("budget").value);
+  render();
+});
+
+$("export").onclick=()=>{if(!expenses.length){alert("Add at least one expense before exporting.");return}let csv=[["Description","Amount (INR)","Category","Date"],...expenses.map(e=>[e.title,e.amount,e.category,e.date])].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\r\n");let url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"})),a=document.createElement("a");a.href=url;a.download="daily-expenses.csv";a.click();URL.revokeObjectURL(url)};
+$("budget").value = localStorage.getItem("dailyExpenseTrackerBudget") || "";
+render();
+</script></body></html>
